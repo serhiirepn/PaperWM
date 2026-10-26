@@ -60,21 +60,23 @@ const RoundedCornersEffect = GObject.registerClass(
         }
 
         _syncUniforms() {
-            const surface = this.actor;
-            if (!surface || surface.width <= 0 || surface.height <= 0)
+            // Use the buffer rect for the size: clients with subsurfaces
+            // (eg. chromium, electron) get a MetaSurfaceContainerActorWayland
+            // which reports a 0x0 size.
+            const buffer = this.metaWindow.get_buffer_rect();
+            if (buffer.width <= 0 || buffer.height <= 0)
                 return;
 
             // round the frame, not the client-side shadows around it
-            const buffer = this.metaWindow.get_buffer_rect();
             const frame = this.metaWindow.get_frame_rect();
             const x1 = frame.x - buffer.x;
             const y1 = frame.y - buffer.y;
-            const x2 = x1 + surface.width + frame.width - buffer.width;
-            const y2 = y1 + surface.height + frame.height - buffer.height;
-            const radius = Math.max(0, Math.min(this.radius, (x2 - x1) / 2, (y2 - y1) / 2));
-            const pixelStep = [1 / surface.width, 1 / surface.height];
+            const x2 = x1 + frame.width;
+            const y2 = y1 + frame.height;
+            const radius = Math.max(0, Math.min(this.radius, frame.width / 2, frame.height / 2));
+            const pixelStep = [1 / buffer.width, 1 / buffer.height];
 
-            const values = `${x1},${y1},${x2},${y2},${radius},${surface.width},${surface.height}`;
+            const values = `${x1},${y1},${x2},${y2},${radius},${buffer.width},${buffer.height}`;
             if (values === this._uniformValues)
                 return;
             this._uniformValues = values;
