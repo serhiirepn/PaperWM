@@ -37,10 +37,47 @@ const RoundedCornersEffect = GObject.registerClass(
                 shader.declarations, shader.code, false);
         }
 
-        setBounds(bounds, radius) {
-            const actor = this.actor;
-            if (!actor || actor.width <= 0 || actor.height <= 0)
+        _init(metaWindow) {
+            super._init();
+            this.metaWindow = metaWindow;
+            this.radius = 0;
+            this._uniformValues = '';
+        }
+
+        setRadius(radius) {
+            this.radius = radius;
+            this.queue_repaint();
+        }
+
+        /**
+         * Bounds are computed on every paint: clients with client-side
+         * shadows (eg. chromium) resize them on focus changes, and signals
+         * about it can arrive a frame late.
+         */
+        vfunc_paint_target(node, paintContext) {
+            this._syncUniforms();
+            super.vfunc_paint_target(node, paintContext);
+        }
+
+        _syncUniforms() {
+            const surface = this.actor;
+            if (!surface || surface.width <= 0 || surface.height <= 0)
                 return;
+
+            // round the frame, not the client-side shadows around it
+            const buffer = this.metaWindow.get_buffer_rect();
+            const frame = this.metaWindow.get_frame_rect();
+            const x1 = frame.x - buffer.x;
+            const y1 = frame.y - buffer.y;
+            const x2 = x1 + surface.width + frame.width - buffer.width;
+            const y2 = y1 + surface.height + frame.height - buffer.height;
+            const radius = Math.max(0, Math.min(this.radius, (x2 - x1) / 2, (y2 - y1) / 2));
+            const pixelStep = [1 / surface.width, 1 / surface.height];
+
+            const values = `${x1},${y1},${x2},${y2},${radius},${surface.width},${surface.height}`;
+            if (values === this._uniformValues)
+                return;
+            this._uniformValues = values;
 
             if (!uniforms) {
                 uniforms = {
@@ -49,15 +86,9 @@ const RoundedCornersEffect = GObject.registerClass(
                     pixelStep: this.get_uniform_location('pixelStep'),
                 };
             }
-
-            const [x1, y1, x2, y2] = bounds;
-            radius = Math.max(0, Math.min(radius, (x2 - x1) / 2, (y2 - y1) / 2));
-
-            this.set_uniform_float(uniforms.bounds, 4, bounds);
+            this.set_uniform_float(uniforms.bounds, 4, [x1, y1, x2, y2]);
             this.set_uniform_float(uniforms.clipRadius, 1, [radius]);
-            this.set_uniform_float(uniforms.pixelStep, 2,
-                [1 / actor.width, 1 / actor.height]);
-            this.queue_repaint();
+            this.set_uniform_float(uniforms.pixelStep, 2, pixelStep);
         }
     });
 
@@ -107,9 +138,6 @@ function track(actor) {
     trackedActors.add(actor);
 
     const metaWindow = actor.meta_window;
-    // the window actor follows the buffer size, frame changes come with size-changed
-    actorSignals.connect(actor, 'notify::size', () => update(actor));
-    actorSignals.connect(metaWindow, 'size-changed', () => update(actor));
     actorSignals.connect(metaWindow, 'notify::fullscreen', () => update(actor));
     // mutter can replace the surface actor, e.g. when a window is remapped
     actorSignals.connect(actor, 'child-added', () => update(actor));
@@ -160,22 +188,10 @@ function update(actor) {
     if (!effect) {
         // a replaced surface leaves the effect on the old one
         removeEffect(actor);
-        effect = new RoundedCornersEffect();
+        effect = new RoundedCornersEffect(metaWindow);
         surface.add_effect_with_name(EFFECT_NAME, effect);
     }
-
-    // round the frame, not the client-side shadows around it
-    const buffer = metaWindow.get_buffer_rect();
-    const frame = metaWindow.get_frame_rect();
-    const x1 = frame.x - buffer.x;
-    const y1 = frame.y - buffer.y;
-    const bounds = [
-        x1,
-        y1,
-        x1 + surface.width + frame.width - buffer.width,
-        y1 + surface.height + frame.height - buffer.height,
-    ];
-    effect.setBounds(bounds, gsettings.get_int('rounded-corners-radius'));
+    effect.setRadius(gsettings.get_int('rounded-corners-radius'));
 }
 
 function removeEffect(actor) {
