@@ -783,6 +783,11 @@
       <summary>WM classes of windows to round. Empty rounds all windows.</summary>
     </key>
 
+    <key type="a{si}" name="rounded-corners-insets">
+      <default>{}</default>
+      <summary>Per WM class inset (px) of the rounded corners, for windows with a transparent margin inside their frame</summary>
+    </key>
+
     <child name="keybindings" schema="org.gnome.shell.extensions.paperwm.keybindings"/>
     <child name="workspaces" schema="org.gnome.shell.extensions.paperwm.workspacelist"/>
 

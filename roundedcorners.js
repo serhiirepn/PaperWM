@@ -41,11 +41,17 @@ const RoundedCornersEffect = GObject.registerClass(
             super._init();
             this.metaWindow = metaWindow;
             this.radius = 0;
+            this.inset = 0;
             this._uniformValues = '';
         }
 
-        setRadius(radius) {
+        /**
+         * @param inset - pixels between the frame and the visible content,
+         *   for clients that leave a transparent margin inside their frame
+         */
+        setShape(radius, inset) {
             this.radius = radius;
+            this.inset = inset;
             this.queue_repaint();
         }
 
@@ -69,11 +75,11 @@ const RoundedCornersEffect = GObject.registerClass(
 
             // round the frame, not the client-side shadows around it
             const frame = this.metaWindow.get_frame_rect();
-            const x1 = frame.x - buffer.x;
-            const y1 = frame.y - buffer.y;
-            const x2 = x1 + frame.width;
-            const y2 = y1 + frame.height;
-            const radius = Math.max(0, Math.min(this.radius, frame.width / 2, frame.height / 2));
+            const x1 = frame.x - buffer.x + this.inset;
+            const y1 = frame.y - buffer.y + this.inset;
+            const x2 = frame.x - buffer.x + frame.width - this.inset;
+            const y2 = frame.y - buffer.y + frame.height - this.inset;
+            const radius = Math.max(0, Math.min(this.radius, (x2 - x1) / 2, (y2 - y1) / 2));
             const pixelStep = [1 / buffer.width, 1 / buffer.height];
 
             const values = `${x1},${y1},${x2},${y2},${radius},${buffer.width},${buffer.height}`;
@@ -102,7 +108,7 @@ export function enable(extension) {
     trackedActors = new Set();
 
     signals.connect(global.window_manager, 'map', (_wm, actor) => track(actor));
-    for (const key of ['enabled', 'radius', 'wm-classes']) {
+    for (const key of ['enabled', 'radius', 'wm-classes', 'insets']) {
         signals.connect(gsettings, `changed::rounded-corners-${key}`, () => refreshAll());
     }
 
@@ -193,7 +199,9 @@ function update(actor) {
         effect = new RoundedCornersEffect(metaWindow);
         surface.add_effect_with_name(EFFECT_NAME, effect);
     }
-    effect.setRadius(gsettings.get_int('rounded-corners-radius'));
+    const insets = gsettings.get_value('rounded-corners-insets').deep_unpack();
+    effect.setShape(gsettings.get_int('rounded-corners-radius'),
+        insets[metaWindow.get_wm_class()] ?? 0);
 }
 
 function removeEffect(actor) {
