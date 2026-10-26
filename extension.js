@@ -7,7 +7,8 @@ import * as Util from 'resource:///org/gnome/shell/misc/util.js';
 
 import {
     Utils, Settings, Gestures, Keybindings, LiveAltTab, Navigator,
-    Stackoverlay, Scratch, Workspace, Tiling, Topbar, Patches, App, Grab
+    Stackoverlay, Scratch, Workspace, Tiling, Topbar, Patches, App, Grab,
+    RoundedCorners
 } from './imports.js';
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -49,7 +50,7 @@ export default class PaperWM extends Extension {
     modules = [
         Utils, Settings, Patches,
         Gestures, Keybindings, LiveAltTab, Navigator, Stackoverlay, Scratch,
-        Workspace, Tiling, Topbar, App, Grab,
+        Workspace, Tiling, Topbar, App, Grab, RoundedCorners,
     ];
 
     #userStylesheet = null;

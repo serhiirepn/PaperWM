@@ -9,6 +9,7 @@ export * as LiveAltTab from './liveAltTab.js';
 export * as Minimap from './minimap.js';
 export * as Navigator from './navigator.js';
 export * as Patches from './patches.js';
+export * as RoundedCorners from './roundedcorners.js';
 export * as Scratch from './scratch.js';
 export * as Settings from './settings.js';
 export * as Stackoverlay from './stackoverlay.js';
