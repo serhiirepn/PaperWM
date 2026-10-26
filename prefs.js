@@ -149,6 +149,8 @@ class SettingsWidget {
         intValueChanged('selection_size_spin', 'selection-border-size');
         intValueChanged('selection_radius_top_spin', 'selection-border-radius-top');
         intValueChanged('selection_radius_bottom_spin', 'selection-border-radius-bottom');
+        booleanStateChanged('rounded-corners-enabled');
+        intValueChanged('rounded_corners_radius_spin', 'rounded-corners-radius');
         intValueChanged('window_gap_spin', 'window-gap');
         intValueChanged('hmargin_spinner', 'horizontal-margin');
         intValueChanged('top_margin_spinner', 'vertical-margin');
